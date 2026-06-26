@@ -1,0 +1,8 @@
+{
+  "name": "Credora",
+  "description": "A secure global investment gateway integrating Privy embedded wallets to empower investors to invest in real-world local business opportunities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
