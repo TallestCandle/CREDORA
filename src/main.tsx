@@ -19,6 +19,9 @@ createRoot(document.getElementById('root')!).render(
           ethereum: {
             createOnLogin: 'all-users',
           },
+          solana: {
+            createOnLogin: 'all-users',
+          },
         },
       }}
     >

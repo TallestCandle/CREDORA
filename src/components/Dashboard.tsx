@@ -1,86 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { Investment } from '../types';
+import { Investment, BusinessOpportunity } from '../types';
 import { 
-  TrendingUp, 
-  DollarSign, 
   Clock, 
   MapPin, 
   CheckCircle2, 
-  Activity, 
-  Briefcase,
-  Layers,
   Award
 } from 'lucide-react';
 
 interface DashboardProps {
   liveBalance: string;
   selectedToken: string;
-  setActiveTab: (tab: string) => void;
+  investments: Investment[];
+  username?: string;
+  firestoreBalance: number;
+  opportunities?: BusinessOpportunity[];
 }
+
+const BACKGROUND_IMAGES = [
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBZlYDOytGl3-IZcbxn_w2S32niyCUfWJzPTdWdGviSg&s=10",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4pc5UsVezLNBLp6Q6jCs1ZDnI359wZafzRjZFkZp-gA&s=10",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTppAK-I8-v7uPw8_Zi6a5e-9msYU_jUHcdquSw94Nhnw&s=10",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVTqVMbYMebM5mqsvdbWhGASzVJlLJUr8L89AcWSHsaw&s",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRTv4lYFvPuaDjAGlz4EN7g-C2kG19fXKm_SL2l964w2g&s=10"
+];
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   liveBalance, 
-  selectedToken,
-  setActiveTab
+  selectedToken: _selectedToken,
+  investments,
+  username,
+  firestoreBalance: _firestoreBalance,
+  opportunities = []
 }) => {
-  const [investments, setInvestments] = useState<Investment[]>([]);
-  const [simulatedBalance, setSimulatedBalance] = useState<number>(10000);
+  const [bgImageIndex, setBgImageIndex] = useState(0);
+  const [tick, setTick] = useState(0);
 
-  // Load state from localStorage on mount
+  // Tick every second to update dynamic time-elapsed returns live
   useEffect(() => {
-    // 1. Investments
-    const storedInvestments = localStorage.getItem('credora_investments');
-    if (storedInvestments) {
-      try {
-        setInvestments(JSON.parse(storedInvestments));
-      } catch (e) {
-        setInvestments([]);
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Background image switcher
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgImageIndex((prevIndex) => (prevIndex + 1) % BACKGROUND_IMAGES.length);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get dynamic return (supports direct financial records net-revenue distribution and time-elapsed fallback)
+  const getAccruedReturn = (inv: Investment) => {
+    const opp = opportunities.find(o => o.id === inv.opportunityId);
+    if (opp && opp.financialRecords && opp.financialRecords.length > 0 && opp.totalShares && inv.sharesOwned) {
+      const totalIncome = opp.financialRecords.filter(r => r.type === 'Income').reduce((sum, r) => sum + r.amount, 0);
+      const totalExpense = opp.financialRecords.filter(r => r.type === 'Expense').reduce((sum, r) => sum + r.amount, 0);
+      const netRevenue = totalIncome - totalExpense;
+      if (netRevenue > 0) {
+        return (netRevenue * inv.sharesOwned) / opp.totalShares;
       }
-    } else {
-      // Set some initial mock investments so the dashboard has rich content on first load
-      const initialInvestments: Investment[] = [
-        {
-          id: 'inv-init-1',
-          opportunityId: 'opp-1',
-          opportunityTitle: 'Solar Power Microgrid Expansion',
-          opportunityLocation: 'Kisumu County, Kenya',
-          amount: 2500,
-          date: 'May 12, 2026',
-          expectedRor: 12.5,
-          status: 'Active',
-          termMonths: 24,
-          accruedReturn: 41.67
-        },
-        {
-          id: 'inv-init-2',
-          opportunityId: 'opp-4',
-          opportunityTitle: 'Artisan Textile Cooperative Facility',
-          opportunityLocation: 'Sacred Valley, Cusco, Peru',
-          amount: 1000,
-          date: 'Jun 02, 2026',
-          expectedRor: 9.8,
-          status: 'Active',
-          termMonths: 12,
-          accruedReturn: 8.17
-        }
-      ];
-      localStorage.setItem('credora_investments', JSON.stringify(initialInvestments));
-      setInvestments(initialInvestments);
     }
 
-    // 2. Simulated Balance
-    const storedSimBalance = localStorage.getItem('credora_simulated_balance');
-    if (storedSimBalance) {
-      setSimulatedBalance(parseFloat(storedSimBalance));
-    } else {
-      localStorage.setItem('credora_simulated_balance', '10000');
-      setSimulatedBalance(10000);
-    }
-  }, []);
+    // Dynamic, time-elapsed return calculation based on expectedRor (annual rate)
+    const msElapsed = Date.now() - new Date(inv.date).getTime();
+    if (msElapsed <= 0) return 0;
+    
+    const yearsElapsed = msElapsed / (365 * 24 * 60 * 60 * 1000);
+    return inv.amount * (inv.expectedRor / 100) * yearsElapsed;
+  };
 
   // Calculate stats
   const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalAccruedReturns = investments.reduce((sum, inv) => sum + inv.accruedReturn, 0);
+  const totalAccruedReturns = investments.reduce((sum, inv) => sum + getAccruedReturn(inv), 0);
   
   // Weighted Average APY calculation
   const averageApy = totalInvested > 0
@@ -89,17 +82,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Total Portfolio Value
   const realBalanceNum = parseFloat(liveBalance) || 0;
-  const portfolioTotalValue = totalInvested + simulatedBalance + realBalanceNum;
+  const portfolioTotalValue = totalInvested + realBalanceNum;
 
-  // Render dummy chart points based on actual portfolio value
-  const chartPoints = [
-    { label: 'Jan', value: portfolioTotalValue * 0.85 },
-    { label: 'Feb', value: portfolioTotalValue * 0.88 },
-    { label: 'Mar', value: portfolioTotalValue * 0.91 },
-    { label: 'Apr', value: portfolioTotalValue * 0.94 },
-    { label: 'May', value: portfolioTotalValue * 0.97 },
-    { label: 'Jun', value: portfolioTotalValue }
-  ];
+  // Helper to parse dates and return 0-indexed month number for timeline distribution
+  const getMonthIndex = (dateStr: string): number => {
+    if (!dateStr) return 5; // Default to June
+    const lower = dateStr.toLowerCase();
+    if (lower.includes('jan') || dateStr.includes('-01-')) return 0;
+    if (lower.includes('feb') || dateStr.includes('-02-')) return 1;
+    if (lower.includes('mar') || dateStr.includes('-03-')) return 2;
+    if (lower.includes('apr') || dateStr.includes('-04-')) return 3;
+    if (lower.includes('may') || dateStr.includes('-05-')) return 4;
+    if (lower.includes('jun') || dateStr.includes('-06-')) return 5;
+    if (lower.includes('jul') || dateStr.includes('-07-')) return 6;
+    if (lower.includes('aug') || dateStr.includes('-08-')) return 7;
+    if (lower.includes('sep') || dateStr.includes('-09-')) return 8;
+    if (lower.includes('oct') || dateStr.includes('-10-')) return 9;
+    if (lower.includes('nov') || dateStr.includes('-11-')) return 10;
+    if (lower.includes('dec') || dateStr.includes('-12-')) return 11;
+    
+    const match = dateStr.match(/-(\d{2})-/);
+    if (match) return parseInt(match[1], 10) - 1;
+    return 5; // Default to June
+  };
+
+  // Render timeline chart points derived entirely from actual historical investments and balances
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  const chartPoints = months.map((monthName, idx) => {
+    // Cumulative investments made up to or during this month index
+    const investedUpToMonth = investments
+      .filter(inv => getMonthIndex(inv.date) <= idx)
+      .reduce((sum, inv) => sum + inv.amount + getAccruedReturn(inv), 0);
+
+    const value = realBalanceNum + investedUpToMonth;
+    return { label: monthName, value };
+  });
+
+  // Calculate dynamic growth percentage
+  const firstValue = chartPoints[0]?.value || 0;
+  const lastValue = chartPoints[chartPoints.length - 1]?.value || 0;
+  const growthPercent = firstValue > 0 
+    ? ((lastValue - firstValue) / firstValue) * 100 
+    : (lastValue > 0 ? 100 : 0);
 
   // Draw smooth SVG spline for Area Chart
   const svgWidth = 500;
@@ -127,100 +151,72 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Top Welcome Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="text-left">
-          <p className="text-xs font-mono text-emerald-500 font-bold tracking-widest uppercase">
-            INVESTOR CONSOLE
-          </p>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-sans mt-1">
-            Global Portfolio Overview
+            {username ? `Welcome, @${username}` : 'Global Portfolio Overview'}
           </h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 bg-[#12141A] border border-[#222731] px-4 py-2 rounded-xl text-xs font-mono text-slate-300">
-            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" /> Network: Mainnet-beta
-          </span>
-          <button 
-            onClick={() => setActiveTab('opportunities')}
-            className="px-4 py-2 bg-emerald-500 text-black font-semibold rounded-xl text-xs font-mono tracking-wider hover:bg-emerald-400 transition hover:scale-[1.02] cursor-pointer"
-          >
-            BROWSE POOLS
-          </button>
         </div>
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Value */}
-        <div className="bg-[#0E1014] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group text-left">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition duration-300" />
-          <div className="space-y-4">
+      <div className="bg-[#0E1014] border border-[#222731] rounded-2xl p-6 relative overflow-hidden">
+        {/* Background Image Layer */}
+        <img
+          src={BACKGROUND_IMAGES[bgImageIndex]}
+          alt="Dashboard Background"
+          className="absolute inset-0 w-full h-full object-cover opacity-20 brightness-150 transition-opacity duration-1000"
+        />
+        <div className="relative grid grid-cols-2 gap-6">
+          {/* Total Value */}
+          <div className="text-left space-y-4">
             <div className="flex justify-between items-center text-xs font-mono text-slate-400 uppercase">
               <span>PORTFOLIO VALUE</span>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
                 ${portfolioTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Asset Allocation: USD Stablecoins + Yield
-              </p>
             </div>
           </div>
-        </div>
 
-        {/* Active Capital */}
-        <div className="bg-[#0E1014] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group text-left">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl" />
-          <div className="space-y-4">
+          {/* Active Capital */}
+          <div className="text-left space-y-4">
             <div className="flex justify-between items-center text-xs font-mono text-slate-400 uppercase">
               <span>ACTIVE INVESTMENTS</span>
-              <Briefcase className="w-4 h-4 text-blue-400" />
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
                 ${totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Locked in {investments.length} global micro-finance pools
-              </p>
             </div>
           </div>
-        </div>
 
-        {/* Accrued Yield */}
-        <div className="bg-[#0E1014] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group text-left">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl" />
-          <div className="space-y-4">
+          {/* Accrued Yield */}
+          <div className="text-left space-y-4">
             <div className="flex justify-between items-center text-xs font-mono text-slate-400 uppercase">
               <span>ACCRUED INTEREST</span>
-              <DollarSign className="w-4 h-4 text-amber-500" />
+              {tick !== undefined && (
+                <span className="text-[9px] text-emerald-400 font-bold tracking-wider animate-pulse flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block animate-ping"></span>
+                  LIVE
+                </span>
+              )}
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tight">
-                +${totalAccruedReturns.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                +${totalAccruedReturns.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Accruing daily from dynamic enterprise yield
-              </p>
             </div>
           </div>
-        </div>
 
-        {/* Average APY */}
-        <div className="bg-[#0E1014] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group text-left">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl" />
-          <div className="space-y-4">
+          {/* Average APY */}
+          <div className="text-left space-y-4">
             <div className="flex justify-between items-center text-xs font-mono text-slate-400 uppercase">
               <span>WEIGHTED APY</span>
-              <Layers className="w-4 h-4 text-purple-400" />
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
                 {averageApy}%
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">
-                Vetted local business yield index
-              </p>
             </div>
           </div>
         </div>
@@ -235,8 +231,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <h3 className="text-sm font-bold text-white font-mono tracking-wider uppercase">PORTFOLIO YIELD GROWTH</h3>
               <p className="text-xs text-slate-400">Total assets evaluation over the last 6 months.</p>
             </div>
-            <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded font-bold">
-              +14.2% GROWTH
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+              growthPercent > 0 
+                ? 'text-emerald-500 bg-emerald-500/10' 
+                : growthPercent < 0 
+                ? 'text-red-500 bg-red-500/10' 
+                : 'text-slate-400 bg-slate-400/10'
+            }`}>
+              {growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(1)}% GROWTH
             </span>
           </div>
 
@@ -288,35 +290,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex justify-between text-[10px] font-mono text-slate-500 px-2 border-t border-[#1f2937] pt-2">
             {chartPoints.map((p, idx) => <span key={idx}>{p.label}</span>)}
           </div>
-
-          {/* Liquid balances block */}
-          <div className="pt-4 border-t border-[#222731] grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-[#121419] p-4 rounded-xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-500 font-mono font-bold block">CONNECTED WALLET BALANCE</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-bold font-mono text-white">
-                  {parseFloat(liveBalance) ? parseFloat(liveBalance).toFixed(4) : '0.00'}
-                </span>
-                <span className="text-xs text-slate-400 font-mono">{selectedToken}</span>
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1 font-mono leading-relaxed">
-                Available to deploy via multi-chain deposit router.
-              </p>
-            </div>
-
-            <div className="bg-[#121419] p-4 rounded-xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-500 font-mono font-bold block">SIMULATED VIRTUAL CASH</span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl font-bold font-mono text-white">
-                  ${simulatedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span className="text-xs text-emerald-400 font-mono">USD</span>
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1 font-mono leading-relaxed">
-                Test balances provided for paper investment trials.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Right: Allocation & Impact */}
@@ -356,10 +329,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="bg-[#121419] p-4 rounded-xl border border-emerald-500/10 space-y-3 mt-4">
             <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-bold">
-              <Award className="w-4 h-4" /> IMPACT INDEX
+              <Award className="w-4 h-4" /> YOUR IMPACT
             </div>
+            <div className="text-[10px] font-mono text-slate-500 italic">POWERED BY CREDORA AI</div>
             <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-              Your investments support 100% green solar deployment in Kenya, double sustainable artisan cooperative incomes in Cusco Peru, and fund eco-aligned micro-enterprises globally.
+              {investments.length > 0 
+                ? "Your investments are actively supporting sustainable development and eco-aligned micro-enterprises globally."
+                : "No active investments to display impact data."}
             </p>
             <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-mono font-bold">
               <CheckCircle2 className="w-3.5 h-3.5" /> Grade-A Social ESG Verified
@@ -411,7 +387,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       {inv.expectedRor}%
                     </td>
                     <td className="py-4 px-6 text-right font-bold text-emerald-400">
-                      +${inv.accruedReturn.toFixed(2)}
+                      +${getAccruedReturn(inv).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
                     </td>
                     <td className="py-4 px-6 text-slate-400">
                       {inv.date}

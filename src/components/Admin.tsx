@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Briefcase, Plus, CheckCircle, Database, Shield } from 'lucide-react';
+import { Plus, CheckCircle, Database, Trash2 } from 'lucide-react';
 import { BusinessOpportunity, PlatformUser, FinancialRecord } from '../types';
 
 const FinancialsTab: React.FC<{ opportunities: BusinessOpportunity[], onUpdateOpportunity: (opp: BusinessOpportunity) => void }> = ({ opportunities, onUpdateOpportunity }) => {
@@ -179,10 +179,27 @@ interface AdminProps {
   currentUserEmail: string;
   platformUsers: PlatformUser[];
   activeAdminTab?: 'users' | 'business' | 'financials' | 'admins';
+  onAddUserFunds: (user: PlatformUser, amount: number) => Promise<void>;
+  onRemoveUserFunds: (user: PlatformUser, amount: number) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
 }
 
-export const Admin: React.FC<AdminProps> = ({ opportunities, onAddOpportunity, onUpdateOpportunity, admins, onAddAdmin, onRemoveAdmin, currentUserEmail, platformUsers, activeAdminTab = 'users' }) => {
+export const Admin: React.FC<AdminProps> = ({ 
+  opportunities, 
+  onAddOpportunity, 
+  onUpdateOpportunity, 
+  admins, 
+  onAddAdmin, 
+  onRemoveAdmin, 
+  currentUserEmail, 
+  platformUsers, 
+  activeAdminTab = 'users',
+  onAddUserFunds,
+  onRemoveUserFunds,
+  onDeleteUser
+}) => {
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [fundsInput, setFundsInput] = useState<{[key: string]: string}>({});
   const [newOpp, setNewOpp] = useState<Partial<BusinessOpportunity>>({
     title: '',
     category: '',
@@ -259,18 +276,19 @@ export const Admin: React.FC<AdminProps> = ({ opportunities, onAddOpportunity, o
                       <th className="pb-3 font-normal">KYC Status</th>
                       <th className="pb-3 font-normal">Account Balance</th>
                       <th className="pb-3 font-normal">Joined</th>
+                      <th className="pb-3 font-normal text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-300">
                     {platformUsers.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="py-8 text-center text-slate-500 font-mono">No users found.</td>
+                        <td colSpan={5} className="py-8 text-center text-slate-500 font-mono">No users found.</td>
                       </tr>
                     )}
                     {platformUsers.map((user, i) => (
                       <tr key={i} className="border-b border-[#222731]/50 last:border-0 hover:bg-slate-800/30">
                         <td className="py-4">
-                          <div className="font-semibold text-white">{user.address}</div>
+                          <div className="font-semibold text-white truncate max-w-[180px]" title={user.address}>{user.address}</div>
                           {user.email && <div className="text-[10px] text-slate-500">{user.email}</div>}
                         </td>
                         <td className="py-4">
@@ -282,8 +300,68 @@ export const Admin: React.FC<AdminProps> = ({ opportunities, onAddOpportunity, o
                             {user.kyc}
                           </span>
                         </td>
-                        <td className="py-4 text-emerald-400">${user.balance.toLocaleString()}</td>
+                        <td className="py-4 text-emerald-400 font-bold">${(user.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td className="py-4 text-slate-500">{new Date(user.joined).toLocaleDateString()}</td>
+                        <td className="py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <input 
+                              type="number" 
+                              placeholder="0" 
+                              value={fundsInput[user.id || user.address] || ''}
+                              onChange={(e) => setFundsInput({ ...fundsInput, [user.id || user.address]: e.target.value })}
+                              className="w-20 bg-[#15171D] border border-[#252B37] rounded-lg px-2 py-1 text-xs text-white text-right focus:border-emerald-500/50 outline-none transition"
+                            />
+                            <button
+                              onClick={async () => {
+                                const val = parseFloat(fundsInput[user.id || user.address] || '');
+                                if (!isNaN(val) && val > 0) {
+                                  await onAddUserFunds(user, val);
+                                  setFundsInput({ ...fundsInput, [user.id || user.address]: '' });
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-mono font-bold uppercase rounded-lg border border-emerald-500/30 transition cursor-pointer"
+                            >
+                              Add
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const val = parseFloat(fundsInput[user.id || user.address] || '');
+                                if (!isNaN(val) && val > 0) {
+                                  await onRemoveUserFunds(user, val);
+                                  setFundsInput({ ...fundsInput, [user.id || user.address]: '' });
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-mono font-bold uppercase rounded-lg border border-rose-500/30 transition cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                            {user.email && admins.map(email => email.toLowerCase()).includes(user.email.toLowerCase()) ? (
+                              <button
+                                disabled
+                                className="p-1.5 bg-[#1F2937]/30 text-gray-500 rounded-lg border border-[#374151]/30 cursor-not-allowed opacity-50"
+                                title="Admin users cannot be deleted"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm(`Are you sure you want to delete user ${user.email || user.address}?`)) {
+                                    if (user.id) {
+                                      await onDeleteUser(user.id);
+                                    } else {
+                                      alert("User ID not found");
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition cursor-pointer"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

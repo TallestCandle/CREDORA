@@ -1,9 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Titillium+Web:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #05070a;
+@theme {
+  --font-sans: "Titillium Web", sans-serif;
+  --font-serif: "Titillium Web", serif;
+  --font-mono: "Titillium Web", monospace;
+}
+
+@layer base {
+  * {
+    font-family: "Titillium Web", sans-serif !important;
+  }
 }

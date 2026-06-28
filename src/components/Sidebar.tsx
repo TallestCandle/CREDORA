@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   User,
   Brain,
-  ShieldCheck,
   Users,
   Briefcase,
   Database,
@@ -62,9 +61,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, ethAd
     <aside className="w-80 border-r border-[#222731] bg-[#0B0D11] flex flex-col h-screen fixed left-0 top-0 z-30">
       <div className="p-6 border-b border-[#222731] flex items-center">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-black text-xl font-mono shadow-[0_0_15px_rgba(255,255,255,0.15)]">
-            C
-          </div>
+          <img 
+            src="https://i.postimg.cc/zvC7hNHC/Chat-GPT-Image-Jun-28-2026-03-57-29-PM.png"
+            alt="Credora Logo"
+            className="w-10 h-10 rounded-lg object-contain shadow-[0_0_15px_rgba(255,255,255,0.15)] bg-[#111318] p-1 border border-slate-800"
+            referrerPolicy="no-referrer"
+          />
           <div>
             <h1 className="text-white text-lg font-bold tracking-wider font-mono">CREDORA</h1>
             <p className="text-[10px] text-emerald-500 font-mono font-bold tracking-widest uppercase">Micro-Finance</p>
@@ -83,7 +85,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, ethAd
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                setActiveTab(item.id);
+                onClose?.();
+              }}
               className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl transition duration-150 text-left cursor-pointer group ${
                 isActive 
                   ? 'bg-white text-black font-semibold' 
@@ -110,7 +115,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, ethAd
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    onClose?.();
+                  }}
                   className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl transition duration-150 text-left cursor-pointer group ${
                     isActive 
                       ? 'bg-emerald-500/20 text-emerald-400 font-semibold' 

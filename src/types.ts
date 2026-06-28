@@ -1,9 +1,11 @@
 export interface PlatformUser {
+  id?: string;
   address: string;
   email?: string;
   kyc: 'Verified' | 'Pending' | 'Rejected';
   balance: number;
   joined: string;
+  username?: string;
 }
 
 export interface NetworkConfig {
@@ -14,7 +16,7 @@ export interface NetworkConfig {
   explorerUrl: string;
 }
 
-export type TokenType = 'USDC' | 'USDT' | 'ETH';
+export type TokenType = 'USDC' | 'USDT' | 'ETH' | 'SOL';
 
 export interface FinancialRecord {
   id: string;

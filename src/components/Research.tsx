@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, MessageSquarePlus, Brain, User, Trash2, ArrowUp, ChevronLeft } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { BUSINESS_OPPORTUNITIES } from '../data/opportunities';
 import { BusinessOpportunity } from '../types';
 
 interface Message {
@@ -19,36 +18,25 @@ interface ChatSession {
 interface ResearchProps {
   initialPrompt?: string;
   contextOpportunity?: BusinessOpportunity | null;
+  opportunities: BusinessOpportunity[];
 }
 
-export const Research: React.FC<ResearchProps> = ({ initialPrompt = '', contextOpportunity }) => {
+export const Research: React.FC<ResearchProps> = ({ initialPrompt = '', contextOpportunity, opportunities }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load sessions from localStorage
+  // Load sessions from Firestore
   useEffect(() => {
-    const stored = localStorage.getItem('credora_research_chats');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSessions(parsed);
-        if (parsed.length > 0) {
-          setActiveSessionId(parsed[0].id);
-        }
-      } catch (e) {
-        console.error('Failed to parse sessions');
-      }
-    }
+    // TODO: Implement Firestore fetching for chat sessions
+    setSessions([]);
   }, []);
 
-  // Save sessions to localStorage
+  // Save sessions to Firestore
   useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem('credora_research_chats', JSON.stringify(sessions));
-    }
+    // TODO: Implement Firestore saving for chat sessions
   }, [sessions]);
 
   // Handle incoming initial prompt
@@ -113,7 +101,7 @@ export const Research: React.FC<ResearchProps> = ({ initialPrompt = '', contextO
   const sendAiRequest = async (sessionId: string, currentMessages: Message[]) => {
     setIsLoading(true);
     try {
-      const contextData = JSON.stringify(BUSINESS_OPPORTUNITIES.map(o => ({
+      const contextData = JSON.stringify(opportunities.map(o => ({
         title: o.title,
         owner: o.ownerName,
         category: o.category,

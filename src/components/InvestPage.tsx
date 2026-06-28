@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Wallet, ShieldCheck, CheckCircle2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Wallet, ShieldCheck } from 'lucide-react';
 import { BusinessOpportunity, Investment } from '../types';
 
 interface InvestPageProps {
@@ -7,9 +7,10 @@ interface InvestPageProps {
   onBack: () => void;
   onInvest: (investment: Investment) => void;
   ethAddress: string;
+  liveBalance: string;
 }
 
-export const InvestPage: React.FC<InvestPageProps> = ({ opportunity, onBack, onInvest, ethAddress }) => {
+export const InvestPage: React.FC<InvestPageProps> = ({ opportunity, onBack, onInvest, ethAddress, liveBalance }) => {
   const [investAmount, setInvestAmount] = useState<string>('');
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -24,6 +25,11 @@ export const InvestPage: React.FC<InvestPageProps> = ({ opportunity, onBack, onI
   const estimatedTotalReturn = numAmount > 0 ? numAmount * (1 + opportunity.expectedRor / 100) : 0;
 
   const handleInvest = () => {
+    if (numAmount > parseFloat(liveBalance)) {
+        setErrorMessage('Insufficient balance.');
+        return;
+    }
+    
     if (!ethAddress) {
       setErrorMessage('Please login to invest.');
       return;

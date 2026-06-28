@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { BusinessOpportunity, Investment } from '../types';
+import { BusinessOpportunity } from '../types';
 import { 
-  Globe, 
   MapPin, 
   Calendar, 
   Shield, 
   CheckCircle, 
   Search, 
   Filter, 
-  DollarSign, 
-  Info, 
-  TrendingUp, 
-  Sparkles, 
-  X,
-  AlertTriangle,
   Bot
 } from 'lucide-react';
 
@@ -28,15 +20,10 @@ interface OpportunitiesProps {
 }
 
 export const Opportunities: React.FC<OpportunitiesProps & { onInvestClick?: (opp: BusinessOpportunity) => void }> = ({ 
-  liveBalance, 
-  refreshBalance,
-  selectedToken,
   onAskAI,
   opportunities,
-  setOpportunities,
   onInvestClick
 }) => {
-  const { authenticated, login } = usePrivy();
   
   // Local state for opportunities
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -48,55 +35,19 @@ export const Opportunities: React.FC<OpportunitiesProps & { onInvestClick?: (opp
   // Filtered list
   const filteredOpps = opportunities.filter((opp) => {
     const matchesCategory = selectedCategory === 'All' || opp.category === selectedCategory;
-    const matchesSearch = opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          opp.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          opp.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          opp.ownerName.toLowerCase().includes(searchQuery.toLowerCase());
+    const title = opp.title || '';
+    const country = opp.country || '';
+    const location = opp.location || '';
+    const ownerName = opp.ownerName || '';
+    const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          ownerName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950/20 via-slate-900 to-slate-950 border border-[#222731] rounded-2xl p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-3 max-w-2xl text-left">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono tracking-wider uppercase">
-            <Globe className="w-3.5 h-3.5 animate-spin-slow" /> Global Micro-Finance Portal
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-sans tracking-tight">
-            Invest in Real Local Businesses Globally
-          </h2>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            By connecting local entrepreneurs directly to global micro-capital, Credora reduces funding friction. Hand-vetted brick-and-mortar opportunities offering predictable returns backed by real-world assets.
-          </p>
-          <button 
-            onClick={() => onAskAI && onAskAI()}
-            className="mt-4 flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-lg text-xs font-mono font-bold uppercase transition cursor-pointer"
-          >
-            <Bot className="w-4 h-4" /> Ask Credora AI
-          </button>
-        </div>
-        <div className="bg-[#111318]/90 border border-[#222731] p-5 rounded-xl text-left space-y-3 min-w-[240px] shadow-lg">
-          <div className="flex items-center gap-2 text-slate-400 text-xs font-mono">
-            <Sparkles className="w-4 h-4 text-emerald-400" /> SYSTEM STATUS
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-slate-300 font-mono">
-              <span>Active Yield pools:</span>
-              <span className="text-white font-bold">{opportunities.length} Pools</span>
-            </div>
-            <div className="flex justify-between text-xs text-slate-300 font-mono">
-              <span>Avg. expected yield:</span>
-              <span className="text-emerald-400 font-bold">13.6% APY</span>
-            </div>
-            <div className="flex justify-between text-xs text-slate-300 font-mono">
-              <span>Vetting framework:</span>
-              <span className="text-white font-bold">Grade A - Tier 1</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-[#0E1014] p-4 rounded-xl border border-[#222731]">
         {/* Search */}

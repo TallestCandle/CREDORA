@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, DollarSign, Activity, Wallet } from 'lucide-react';
+import { TrendingUp, Activity, Wallet } from 'lucide-react';
 import { Investment, BusinessOpportunity } from '../types';
 
 interface PortfolioProps {
@@ -8,27 +8,43 @@ interface PortfolioProps {
 }
 
 export const Portfolio: React.FC<PortfolioProps> = ({ investments, opportunities }) => {
+  const [tick, setTick] = React.useState(0);
+
+  // Tick every second to update dynamic time-elapsed returns live
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const activeInvestments = investments.filter(inv => inv.status === 'Active' || inv.status === 'Pending');
   
   // Calculate total invested
   const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
   
-  // Calculate accrued returns dynamically based on actual opportunity financials
+  // Calculate accrued returns dynamically based on actual opportunity financials or time elapsed
   let totalAccrued = 0;
 
   const enrichedInvestments = investments.map(inv => {
     const opp = opportunities.find(o => o.id === inv.opportunityId);
-    let calculatedReturn = inv.accruedReturn || 0;
+    let calculatedReturn = 0;
 
-    if (opp && opp.financialRecords && opp.totalShares && inv.sharesOwned) {
-      // Calculate net revenue (Income - Expenses)
+    // 1. If opportunity has financial records, use revenue share
+    if (opp && opp.financialRecords && opp.financialRecords.length > 0 && opp.totalShares && inv.sharesOwned) {
       const totalIncome = opp.financialRecords.filter(r => r.type === 'Income').reduce((sum, r) => sum + r.amount, 0);
       const totalExpense = opp.financialRecords.filter(r => r.type === 'Expense').reduce((sum, r) => sum + r.amount, 0);
       const netRevenue = totalIncome - totalExpense;
 
       if (netRevenue > 0) {
-        // Shareholder's portion of the net revenue
         calculatedReturn = (netRevenue * inv.sharesOwned) / opp.totalShares;
+      }
+    } else {
+      // 2. Otherwise, dynamic real-time elapsed accrual based on expectedRor (annual APY)
+      const msElapsed = Date.now() - new Date(inv.date).getTime();
+      if (msElapsed > 0) {
+        const yearsElapsed = msElapsed / (365 * 24 * 60 * 60 * 1000);
+        calculatedReturn = inv.amount * (inv.expectedRor / 100) * yearsElapsed;
       }
     }
 
@@ -63,8 +79,16 @@ export const Portfolio: React.FC<PortfolioProps> = ({ investments, opportunities
           <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition">
             <TrendingUp className="w-24 h-24 text-emerald-500" />
           </div>
-          <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Total Returns</p>
-          <h3 className="text-3xl font-serif text-emerald-400">${totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-slate-400 font-mono text-xs uppercase tracking-widest">Total Returns</p>
+            {tick !== undefined && (
+              <span className="text-[9px] text-emerald-400 font-bold tracking-wider animate-pulse flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block animate-ping"></span>
+                LIVE
+              </span>
+            )}
+          </div>
+          <h3 className="text-3xl font-serif text-emerald-400">${totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</h3>
         </div>
         
         <div className="bg-[#111318] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group">
@@ -113,7 +137,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ investments, opportunities
                   <td className="py-4">{inv.sharesOwned?.toLocaleString() || 0}</td>
                   <td className="py-4">${inv.amount.toLocaleString()}</td>
                   <td className="py-4 text-emerald-400 font-semibold">
-                    ${inv.calculatedReturn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${inv.calculatedReturn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
                   </td>
                 </tr>
               ))}
