@@ -288,9 +288,6 @@ export default function App() {
 
   // Render views
   const renderActiveView = () => {
-    if (!authenticated) {
-      return <LandingPage onLogin={login} />;
-    }
     switch (activeTab) {
       case 'dashboard':
         return (
@@ -768,6 +765,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (!authenticated) {
+    return <LandingPage onLogin={login} />;
   }
 
   return (
