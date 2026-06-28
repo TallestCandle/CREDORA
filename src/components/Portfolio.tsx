@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Activity, Wallet } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Investment, BusinessOpportunity } from '../types';
 
 interface PortfolioProps {
@@ -27,6 +27,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ investments, opportunities
   let totalAccrued = 0;
 
   const enrichedInvestments = investments.map(inv => {
+    void tick; // Force evaluation of tick to trigger recalculation on tick updates
     const opp = opportunities.find(o => o.id === inv.opportunityId);
     let calculatedReturn = 0;
 
@@ -66,37 +67,29 @@ export const Portfolio: React.FC<PortfolioProps> = ({ investments, opportunities
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#111318] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition">
-            <Wallet className="w-24 h-24" />
+      <div className="bg-[#111318] border border-[#222731] rounded-3xl p-8 md:p-10 relative overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0 relative z-10">
+          <div className="space-y-2">
+            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em]">Total Invested</p>
+            <h3 className="text-3xl md:text-4xl font-serif text-white">${totalInvested.toLocaleString()}</h3>
           </div>
-          <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Total Invested</p>
-          <h3 className="text-3xl font-serif text-white">${totalInvested.toLocaleString()}</h3>
+          
+          <div className="space-y-2 md:border-x border-[#222731] md:px-12">
+            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em]">Total Returns</p>
+            <h3 className="text-3xl md:text-4xl font-serif text-emerald-400">
+              ${totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
+            </h3>
+          </div>
+          
+          <div className="space-y-2 md:pl-12">
+            <p className="text-slate-500 font-mono text-[10px] uppercase tracking-[0.2em]">Active Holdings</p>
+            <h3 className="text-3xl md:text-4xl font-serif text-white">{activeInvestments.length}</h3>
+          </div>
         </div>
         
-        <div className="bg-[#111318] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition">
-            <TrendingUp className="w-24 h-24 text-emerald-500" />
-          </div>
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-slate-400 font-mono text-xs uppercase tracking-widest">Total Returns</p>
-            {tick !== undefined && (
-              <span className="text-[9px] text-emerald-400 font-bold tracking-wider animate-pulse flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block animate-ping"></span>
-                LIVE
-              </span>
-            )}
-          </div>
-          <h3 className="text-3xl font-serif text-emerald-400">${totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</h3>
-        </div>
-        
-        <div className="bg-[#111318] border border-[#222731] rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition">
-            <Activity className="w-24 h-24" />
-          </div>
-          <p className="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Active Holdings</p>
-          <h3 className="text-3xl font-serif text-white">{activeInvestments.length}</h3>
+        {/* Subtle background graphic */}
+        <div className="absolute -right-24 -top-24 opacity-[0.03] pointer-events-none">
+          <Activity className="w-80 h-80 text-white" />
         </div>
       </div>
 

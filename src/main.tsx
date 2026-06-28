@@ -5,10 +5,12 @@ import App from './App.tsx';
 import './index.css';
 import { PrivyProvider } from '@privy-io/react-auth';
 
+const privyAppId = ((import.meta as any).env?.VITE_PRIVY_APP_ID as string) || "cmquzw4f600ag0cjom7h2gnp0";
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PrivyProvider
-      appId="cmquzw4f600ag0cjom7h2gnp0"
+      appId={privyAppId}
       config={{
         loginMethods: ['email'],
         appearance: {

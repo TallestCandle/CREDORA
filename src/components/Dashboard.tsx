@@ -53,6 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Get dynamic return (supports direct financial records net-revenue distribution and time-elapsed fallback)
   const getAccruedReturn = (inv: Investment) => {
+    void tick; // Force evaluation of tick to trigger recalculation on tick updates
     const opp = opportunities.find(o => o.id === inv.opportunityId);
     if (opp && opp.financialRecords && opp.financialRecords.length > 0 && opp.totalShares && inv.sharesOwned) {
       const totalIncome = opp.financialRecords.filter(r => r.type === 'Income').reduce((sum, r) => sum + r.amount, 0);
@@ -194,12 +195,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="text-left space-y-4">
             <div className="flex justify-between items-center text-xs font-mono text-slate-400 uppercase">
               <span>ACCRUED INTEREST</span>
-              {tick !== undefined && (
-                <span className="text-[9px] text-emerald-400 font-bold tracking-wider animate-pulse flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block animate-ping"></span>
-                  LIVE
-                </span>
-              )}
             </div>
             <div className="space-y-1">
               <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tight">

@@ -23,20 +23,25 @@ try {
     } catch (e) {}
   }
 
-  Object.defineProperty(window, 'fetch', {
-    get() {
-      return stableFetch;
-    },
-    set(val) {
-      if (typeof val === 'function') {
-        currentFetch = val;
-      } else {
-        console.warn("[Credora Patch] Attempted to set window.fetch to a non-function value:", val);
-      }
-    },
-    configurable: true,
-    enumerable: true
-  });
+  const fetchDesc = Object.getOwnPropertyDescriptor(window, 'fetch');
+  if (!fetchDesc || fetchDesc.configurable) {
+    Object.defineProperty(window, 'fetch', {
+      get() {
+        return stableFetch;
+      },
+      set(val) {
+        if (typeof val === 'function') {
+          currentFetch = val;
+        } else {
+          console.warn("[Credora Patch] Attempted to set window.fetch to a non-function value:", val);
+        }
+      },
+      configurable: true,
+      enumerable: true
+    });
+  } else {
+    console.warn("[Credora Patch] window.fetch is not configurable, skipping override");
+  }
 } catch (e) {
   console.warn("[Credora Patch] Failed to define custom fetch getter/setter:", e);
 }
@@ -118,13 +123,18 @@ try {
   try {
     const originalParent = window.parent;
     const safeParent = createSafeWindowProxy(originalParent);
-    Object.defineProperty(window, 'parent', {
-      get() {
-        return safeParent;
-      },
-      configurable: true,
-      enumerable: true
-    });
+    const desc = Object.getOwnPropertyDescriptor(window, 'parent');
+    if (!desc || desc.configurable) {
+      Object.defineProperty(window, 'parent', {
+        get() {
+          return safeParent;
+        },
+        configurable: true,
+        enumerable: true
+      });
+    } else {
+      console.warn("[Credora Patch] window.parent is not configurable, skipping override");
+    }
   } catch (err) {
     console.warn("[Credora Patch] Failed to override window.parent:", err);
   }
@@ -133,13 +143,18 @@ try {
   try {
     const originalTop = window.top;
     const safeTop = createSafeWindowProxy(originalTop);
-    Object.defineProperty(window, 'top', {
-      get() {
-        return safeTop;
-      },
-      configurable: true,
-      enumerable: true
-    });
+    const desc = Object.getOwnPropertyDescriptor(window, 'top');
+    if (!desc || desc.configurable) {
+      Object.defineProperty(window, 'top', {
+        get() {
+          return safeTop;
+        },
+        configurable: true,
+        enumerable: true
+      });
+    } else {
+      console.warn("[Credora Patch] window.top is not configurable, skipping override");
+    }
   } catch (err) {
     console.warn("[Credora Patch] Failed to override window.top:", err);
   }
@@ -149,13 +164,18 @@ try {
     const originalOpener = window.opener;
     if (originalOpener) {
       const safeOpener = createSafeWindowProxy(originalOpener);
-      Object.defineProperty(window, 'opener', {
-        get() {
-          return safeOpener;
-        },
-        configurable: true,
-        enumerable: true
-      });
+      const desc = Object.getOwnPropertyDescriptor(window, 'opener');
+      if (!desc || desc.configurable) {
+        Object.defineProperty(window, 'opener', {
+          get() {
+            return safeOpener;
+          },
+          configurable: true,
+          enumerable: true
+        });
+      } else {
+        console.warn("[Credora Patch] window.opener is not configurable, skipping override");
+      }
     }
   } catch (err) {
     console.warn("[Credora Patch] Failed to override window.opener:", err);
